@@ -211,7 +211,7 @@ def test_ppo():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("Hyperparameter Setting for PPO-discrete")
-    parser.add_argument("--max_train_steps", type=int, default=int(1.0e3), help=" Maximum number of training steps")
+    parser.add_argument("--max_train_steps", type=int, default=int(1.5e3), help=" Maximum number of training steps")
     parser.add_argument("--max_test_steps", type=int, default=int(1), help=" Maximum number of training steps")
     parser.add_argument("--evaluate_freq", type=float, default=40, help="Evaluate the policy every 'evaluate_freq' steps")
     parser.add_argument("--save_freq", type=int, default=20, help="Save frequency")

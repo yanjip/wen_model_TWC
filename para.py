@@ -2,7 +2,7 @@
 # author: YanJP
 
 import numpy as np
-seed=100
+seed=0
 np.random.seed(seed)
 
 KHz=1e3
@@ -16,19 +16,19 @@ N0=3.981e-20  #-174dBm
 K=4  #用户数
 N=5 # 基站数
 
-T_tile=20  # 3*3*3
+T_tile=25  # 3*3*3
 N_fov=8  # #每个fov里面的tile数量
 len_Si=4
 
 
 bitrate_levels=5
-bitrates=np.array([40e6,50e6,60e6,85e6,100e6])/T_tile  #[0.3e6,0.7e6,1.6e6, 3.7e6, 8.6e6, 20e6]   [1e6,2.5e6,5e6,8e6,16e6]
+bitrates=np.array([30e6,90e6,180e6,250e6,400e6])/T_tile  #[0.3e6,0.7e6,1.6e6, 3.7e6, 8.6e6, 20e6]   [1e6,2.5e6,5e6,8e6,16e6]
 
 e=0.5  # 转一个码率等级所消耗的能量
 
 ###-----------------------------Agent设置----------------------
 action_dim=bitrate_levels
-state_dim=K  #
+state_dim=T_tile +1 # 加上distance
 
 ### -----------------------------转码设置------------------------
 capability=0.1e9  # 0.5G cycle/s
@@ -38,8 +38,10 @@ Bit_max=16e6 # UE最多处理40Mbit的数据
 
 
 ### -------------------------------Zipf设置------------------------
-# Ds=[0.5,1,2,2.5]
-Ds=[1,1,1,1]
+Ds=[0.5,0.8,1.5,2.5]
+# Ds=[1,1,1,1]
+# Ds=[0,0,0,0]
+
 
 D_matrix = np.random.choice(Ds, size=(T_tile, K))
 
@@ -143,9 +145,9 @@ W_solution=np.ones((N,len_Si))
 def watconvert(power_dbm):
     power_watt = np.power(10, (power_dbm - 30) / 10)
     return power_watt
-afa=5.0
-beta=30
-gamma=5
+afa=5
+beta=10
+gamma=1.5
 def get_QoE(D,bitrate):
     Qoe=afa/D*np.log(beta*bitrate/max(bitrates)+gamma)
     return Qoe

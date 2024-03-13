@@ -11,6 +11,7 @@ class Alluser():
         self.get_Si()
         self.get_Ki()
         self.get_matrix()
+        self.get_union()
     def get_Si(self,):  # 均匀分割
         array=[i for i in range(para.T_tile)]
         # 将数组分成长度为x的子数组
@@ -36,6 +37,11 @@ class Alluser():
             for j in user.rt_set:
                 self.matrix[j][i] = 1
         self.sum_matrix=np.sum(self.matrix)
+    def get_union(self,):
+        self.union=np.array([],dtype=int)
+        for i, user in enumerate(self.userSet):
+            self.union=np.union1d(self.union,user.rt_set)
+
 
 
 class Tile_multicast():  #Si
@@ -72,11 +78,16 @@ class env_():
         for si in self.userAll.S_set:
             self.Si_last.append(si[-1])
         self.get_index()
+        self.tile_union=self.userAll.union
         pass
     def get_index(self,):
         self.indexs=[]
         for u in self.userAll.userSet:
             self.indexs.append(u.rt_set)
+    def get_obs(self,):
+        row_maxes = np.amax(self.res_birate, axis=1)
+        return row_maxes
+
     def reset(self,):
         self.done=0
         self.t=0
@@ -85,16 +96,21 @@ class env_():
         self.steps=0
         self.Si_birates=[0]*len(self.userAll.S_set)
         self.res_p=[]
-        self.res_birate=np.zeros((para.T_tile,para.K))-1
+        self.res_birate=np.zeros((para.T_tile,para.K),dtype=int)-1
         self.user_transcodebit=np.array([para.Bit_max]*para.K)
+        self.tile_bit_choose = {element: -1 for element in self.tile_union}
+        self.t_index=self.indexs[self.cur_user][self.t]
+        self.D = para.D_matrix[self.t_index, self.cur_user]
+        # obs = self.user_transcodebit
+        obs=self.get_obs()
         # obs=np.concatenate((self.now_h,np.array([self.Nc_left_norm,sum(self.salency[self.index])])),axis=0)
+        obs=np.concatenate((obs,np.array([self.D])),axis=0)
 
-        obs = self.user_transcodebit
         return obs
         # state：[time_step, carrier_left, tile_number]  加不加上tilenumber呢，这很有影响
         pass
     def step(self,action):
-        self.t_index=self.indexs[self.cur_user][self.t]
+        # for
         # for i, si in enumerate(self.userAll.S_set):
         #     if self.t in si:
         #         self.group_idx=i
@@ -102,12 +118,21 @@ class env_():
         #         break
         # self.Si_birates[self.group_idx]+=para.bitrates[action]
         # reward=0
-        D = para.D_matrix[self.t_index, self.cur_user]
-        self.user_transcodebit[self.cur_user] -= para.bitrates[action] - para.bitrates[0]
-        if self.user_transcodebit[self.cur_user] < 0:
-            self.user_transcodebit[self.cur_user] += para.bitrates[action] - para.bitrates[0]
-            action = 0
+        # D = para.D_matrix[self.t_index, self.cur_user]
+        D=self.D
+        # self.user_transcodebit[self.cur_user] -= para.bitrates[action] - para.bitrates[0]
+        # if self.user_transcodebit[self.cur_user] < 0:
+        #     self.user_transcodebit[self.cur_user] += para.bitrates[action] - para.bitrates[0]
+        #     action = 0
             # reward=0
+        if  self.tile_bit_choose[self.t_index]==-1:
+            self.tile_bit_choose[self.t_index]=action  # 你现在就是最大的
+        elif self.tile_bit_choose[self.t_index]!=-1:
+            if action > self.tile_bit_choose[self.t_index]:
+                action = self.tile_bit_choose[self.t_index]
+            elif (self.tile_bit_choose[self.t_index]-action)>2:  # 这样写的话，原本选的码率为1，强行改成了4-2=2
+                action=self.tile_bit_choose[self.t_index]-2  #
+                # action=0
         reward = para.get_QoE(D, para.bitrates[action])
         # for u in self.userAll.K_set[self.group_idx]:
         #     if u.id==self.cur_user:
@@ -127,18 +152,23 @@ class env_():
         self.res_birate[self.t_index,self.cur_user]=action
         self.steps+=1
         self.t+=1
-        if self.steps%para.N_fov==0:
+        if self.steps%para.N_fov==0:  # 现在是对每个用户依次选择他FoV里面tile的码率
             self.cur_user+=1
             self.t=0
+
+            pass
         if self.steps==para.N_fov*para.K:
             self.done=1.0
-            obs=self.user_transcodebit/1e6
+        #     obs=self.user_transcodebit/1e6
+            self.D=0
         else:
-            # self.now_h = self.h[self.pos:self.pos + para.action_dim, self.index]
+            self.t_index = self.indexs[self.cur_user][self.t]
+            self.D = para.D_matrix[self.t_index, self.cur_user]
+        #     # self.now_h = self.h[self.pos:self.pos + para.action_dim, self.index]
             # obs = np.concatenate((self.now_h, np.array([self.Nc_left / para.N_c,sum(self.salency[self.index])])), axis=0)
             # obs=np.array([0.0]*para.state_dim)
-            obs = self.user_transcodebit / 1e6
-
+        obs = self.get_obs()
+        obs=np.concatenate((obs,np.array([self.D])),axis=0)
             # obs=np.concatenate((obs,np.sum(self.salency[self.index])),axis=0)
         return obs, reward, self.done, None
 

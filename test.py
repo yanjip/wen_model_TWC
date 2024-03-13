@@ -32,8 +32,9 @@ def zipf_pic():
 if __name__ == '__main__':
     # zipf_pic()
 
-    x=[[] for _ in range(3)]
-    x[1].append(9)
-    print(x)
+    # x=[[] for _ in range(3)]
+    # x[1].append(9)
+    # print(x)
 
-
+    res=np.load('runs/rewards/2024_03_13-10_30_46_reward.npy')
+    print(res[0:5])
