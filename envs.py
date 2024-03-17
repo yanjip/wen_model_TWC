@@ -60,7 +60,7 @@ class User():
     def __init__(self,id):
         self.id=id
     # def request_tile(self):
-        self.D=np.random.choice(para.Ds)
+    #     self.D=np.random.choice(para.Ds)
         self.rt_set=para.request()
 
 
@@ -96,6 +96,7 @@ class env_():
         self.steps=0
         self.Si_birates=[0]*len(self.userAll.S_set)
         self.res_p=[]
+        self.res_energy_consume=0
         self.res_birate=np.zeros((para.T_tile,para.K),dtype=int)-1
         self.user_transcodebit=np.array([para.Bit_max]*para.K)
         self.tile_bit_choose = {element: -1 for element in self.tile_union}
@@ -103,14 +104,11 @@ class env_():
         self.D = para.D_matrix[self.t_index, self.cur_user]
         # obs = self.user_transcodebit
         obs=self.get_obs()
-        # obs=np.concatenate((self.now_h,np.array([self.Nc_left_norm,sum(self.salency[self.index])])),axis=0)
         obs=np.concatenate((obs,np.array([self.D])),axis=0)
-
         return obs
         # state：[time_step, carrier_left, tile_number]  加不加上tilenumber呢，这很有影响
         pass
     def step(self,action):
-        # for
         # for i, si in enumerate(self.userAll.S_set):
         #     if self.t in si:
         #         self.group_idx=i
@@ -133,7 +131,12 @@ class env_():
             elif (self.tile_bit_choose[self.t_index]-action)>2:  # 这样写的话，原本选的码率为1，强行改成了4-2=2
                 action=self.tile_bit_choose[self.t_index]-2  #
                 # action=0
-        reward = para.get_QoE(D, para.bitrates[action])
+        QoE = para.get_QoE(D, para.bitrates[action])
+        energy_consume=para.get_energy(self.tile_bit_choose[self.t_index],action)
+        self.res_energy_consume+=energy_consume
+        if energy_consume>0:
+            pass
+        reward=QoE-para.lambda1*energy_consume
         # for u in self.userAll.K_set[self.group_idx]:
         #     if u.id==self.cur_user:
         #         D=para.D_matrix[self.t,self.cur_user]
@@ -171,7 +174,15 @@ class env_():
         obs=np.concatenate((obs,np.array([self.D])),axis=0)
             # obs=np.concatenate((obs,np.sum(self.salency[self.index])),axis=0)
         return obs, reward, self.done, None
-
+    def Si_rate(self,):
+        self.sum_bits_si=[]
+        for i,si in enumerate(self.userAll.S_set):
+            sum_bit = 0
+            for t in self.tile_union:
+                if t in si:
+                    sum_bit+=para.bitrates[self.tile_bit_choose[t]]
+            self.sum_bits_si.append(sum_bit)
+        return self.sum_bits_si
 if __name__ == '__main__':
     alluser=Alluser()
 

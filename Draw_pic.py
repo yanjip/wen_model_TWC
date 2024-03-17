@@ -60,7 +60,7 @@ def plot_rewards(rewards,time,  path=None,):
     plt.plot(s_r1, linewidth='1.5', )
     # plt.plot(s_r2,linewidth='1.5', label='clipped probability ratio=0.5')
     # plt.ylim(-1)
-    plt.legend()
+    # plt.legend()
     a = time
     plt.savefig(f"{path}/{a}_power.png")
     plt.show()

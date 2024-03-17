@@ -2,14 +2,16 @@
 # author: YanJP
 import numpy as np
 import cvxpy as cp
-
+seed=0
+np.random.seed(seed)
 K = 4  # user number
-N = 5  # base station number
-var = 1e-10
-gamma_dB =58  # SINR in dB
+N = 4  # base station number
+var = 1e-8
+gamma_dB =60  # SINR in dB
 gamma = 10 ** (gamma_dB / 10)  # Convert dB to linear scale
+print("log(1+gamma)=",np.log2(1+gamma))
 gammavar = gamma * var
-POWER = 300.5
+POWER = 2.5
 
 H = np.zeros((K, N), dtype=complex)  # Create a K x N zero matrix
 average_power_loss = 1e-4
@@ -66,3 +68,15 @@ if feasible:
     print(sinrdB)
     print("bps:")
     print(np.log2(1 + sinr))
+
+
+    # 验证
+    for k in range(Kr):
+        hkD = np.zeros((Kr, N), dtype=complex)
+        for i in range(Kr):
+            hkD[i, :] = H[k, :] @ D
+        if np.real(hkD[k, :] @ Wsolution[:, k]) >= np.linalg.norm([1] + hkD[k, :] @ Wsolution[:, np.r_[0:k, k + 1:Kr]] / np.sqrt(var)) * np.sqrt(gammavar):
+            print(True)
+        else:
+            print(False)
+            pass

@@ -54,15 +54,18 @@ def evaluate_policy(args, env, agent, state_norm):
             episode_reward += r
             s = s_
         evaluate_reward += sum(env.res_p)
-    print("reward:",episode_reward)
+    print("reward:",episode_reward/para.K)
+    sum_bits_si = env.Si_rate()
     # return evaluate_reward / times
-    return env.user_transcodebit,env.res_birate
+    return env.user_transcodebit,env.res_birate,env.res_energy_consume,sum_bits_si,episode_reward/para.K
 
-def write_power(bitrates,user_transcodebit):
+def write_power(bitrates,user_transcodebit,energy_consume,sum_bits_si):
     with open('runs/sum_power.txt', 'a+') as F:
         F.write(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())) + '\n')
         # F.write("----Power:" + str(para.maxPower) + '\n')
         F.write("Bitrate_list:" + str(bitrates) + "\n\n")
+        F.write("Energy_consume:" + str(energy_consume) + "\n\n")
+        F.write("sum_bits_si:" + str(np.array(sum_bits_si)/1e6) + "Mbit\n\n")
         F.write("user_transcodebit_left:" + str(user_transcodebit/1e6) + "Mbit\n\n")
 
 def get_file_model(folder_path = "runs/model/"):
@@ -144,6 +147,7 @@ def main(args, time, seed):
                 replay_buffer.count = 0
         ep_reward=sum(episode_rewards)/para.K
         print("ep_reward:",ep_reward)
+        # sum_bits_si=env.Si_rate()
         rewards.append(ep_reward)
         if ma_rewards:
             ma_rewards.append(0.9 * ma_rewards[-1] + 0.1 * ep_reward)
@@ -152,20 +156,20 @@ def main(args, time, seed):
             # Evaluate the policy every 'evaluate_freq' steps
         if total_steps % args.evaluate_freq == 0:
             evaluate_num += 1
-            user_transcodebit,bitrates = evaluate_policy(args, env_evaluate, agent, state_norm)
+            user_transcodebit,bitrates,energy_consume,sum_bits_si,_ = evaluate_policy(args, env_evaluate, agent, state_norm)
             # evaluate_rewards.append(evaluate_reward)
             # np.set_printoptions(precision=3)
             # powersum= sum([a * b for a, b in zip(evaluate_power, carrier_allocation)])
             # carrier_sum= sum(carrier_allocation)
 
-            print("num:{} \t Left user_transcodebit:{}\tbirate_seleciton:{}".format(evaluate_num,user_transcodebit,bitrates))
+            print("num:{} \t Left user_transcodebit:{}\tbirate_seleciton:{}\t energy_consume:{}".format(evaluate_num,user_transcodebit,bitrates,energy_consume))
             # writer.add_scalar('step_rewards', evaluate_rewards[-1], global_step=total_steps)
             # Save the rewards
             # if evaluate_num % args.save_freq == 0:
             #     np.save('./data_train/PPO_discrete_time_{}_seed_{}.npy'.format(time, seed), np.array(evaluate_rewards))
         # if (total_steps + 1) % 2 == 0:
         #     print(f'train_step:{total_steps},power_all:{env.res_p}',)
-    write_power(bitrates,user_transcodebit)
+    write_power(bitrates,user_transcodebit,energy_consume,sum_bits_si)
     path='runs/model/ppo_'+time+'.pth'
     torch.save(agent.actor.state_dict(), path)
     save_state_norm(state_norm)
@@ -174,14 +178,12 @@ def main(args, time, seed):
 
 def test(args,model_dic='rnn'):
     env = envs.env_()
+    para.env=env
     args.state_dim = env.observation_space[0]
     # args.action_dim = env.action_space.n
     args.action_dim = env.action_dim
     args.max_episode_steps = env._max_episode_steps  # Maximum number of steps per episode
     evaluate_num = 0  # Record the number of evaluations
-    evaluate_rewards = []  # Record the rewards during the evaluating
-    total_steps = 0  # Record the total steps during the training
-
     agent = PPO_discrete(args)
     if model_dic == 'rnn':
         model=get_file_model()
@@ -192,12 +194,12 @@ def test(args,model_dic='rnn'):
     agent.load_model(path)
     state_norm =load_state_norm()
     # state_norm = Normalization(shape=args.state_dim)  # Trick 2:state normalization
-
     for total_steps in range(1,args.max_test_steps+1):
-        carrier_allocation, bitrates,rewards = evaluate_policy(args, env, agent, state_norm)
-        print("carrier_sum:{} \n carrier_allocation:{}\nbirate_seleciton:{}\n rewards:{}".format(
-            sum(carrier_allocation),  carrier_allocation, bitrates,rewards))
-    return rewards
+        user_transcodebit, bitrates, energy_consume, sum_bits_si,episode_reward = evaluate_policy(args, env, agent,
+                                                                                   state_norm)
+        print("sum_bits",sum(sum_bits_si))
+        print(" \t energy_consume:{}\tbirate_seleciton:{}".format( energy_consume,bitrates))
+    return episode_reward
         # ep_reward=sum(episode_rewards)
         # print("ep_reward:",ep_reward)
         # rewards.append(ep_reward)
@@ -220,7 +222,7 @@ if __name__ == '__main__':
     parser.add_argument("--hidden_width", type=int, default=64, help="The number of neurons in hidden layers of the neural network")
     parser.add_argument("--lr_a", type=float, default=3e-4, help="Learning rate of actor")
     parser.add_argument("--lr_c", type=float, default=3e-4, help="Learning rate of critic")
-    parser.add_argument("--gamma", type=float, default=0.90, help="Discount factor")
+    parser.add_argument("--gamma", type=float, default=0.95, help="Discount factor")
     parser.add_argument("--lamda", type=float, default=0.95, help="GAE parameter")
     parser.add_argument("--epsilon", type=float, default=0.2, help="PPO clip parameter")
     parser.add_argument("--K_epochs", type=int, default=20, help="PPO parameter") #default=10
@@ -237,8 +239,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     curr_time = datetime.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
-    train=True
-    # train=False
+    # train=True
+    train=False
     train_log_dir='runs/rewards/'+curr_time
     if train:
         res_dic=main(args, curr_time, seed=seed)
@@ -247,35 +249,7 @@ if __name__ == '__main__':
         plot_rewards(res_dic['rewards'],curr_time,path='runs/pic')
     else:
         test(args)
-        # l=para.Link
-        # #----------Proposed _--------------
-        # b_ = Baseline_()
-        # x=b_.get_power_sum()
-        # # print("powers:",b_.powers)
-        # # print("powersum:",sum(b_.powers))
-        # # print("Check_VQ:",b_.VQ)
-        #
-        # #----------Baseline 1-------------- 子载波固定码率自适应
-        # b1=Baseline1()
-        # x1=b1.get_power_sum()
-        # # print("powers:",b1.powers)
-        # # print("powersum:",sum(b1.powers))
-        # # print("Check_VQ:",b1.VQ)
-        #
-        #
-        # # ----------Baseline 2--------------子载波随机，码率自适应
-        # b2 = Baseline2()
-        # x2=b2.get_power_sum()
-        # # print("powers:", b2.powers)
-        # # print("powersum:", sum(b2.powers))
-        # # print("Check_VQ:", b2.VQ)
-        # # ----------Baseline 3--------------子载波自适应，码率随机算法
-        # b3 = Baseline3()
-        # x3=b3.get_power_sum()
-        # print(x, x1, x2, x3)
-        # print()
-    # test()
-    #     test_ppo()
+
 
 
 
