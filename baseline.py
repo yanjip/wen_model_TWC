@@ -1,17 +1,16 @@
 # time: 2024/3/13 17:12
 # author: YanJP
 import numpy as np
-
+from Draw_pic import *
 import para
 from train import *
-
 class baseline1():   # 非多播+码率固定
     def __init__(self):
         self.bitrates =np.ones((para.T_tile,para.K),dtype=int)+2   # 固定码率
         self.all_bit = 0
     def get_Q(self, ):
         Q = 0
-        for i, u in enumerate(env.userAll.userSet):
+        for i, u in enumerate(para.env.userAll.userSet):
             for j, tile in enumerate(u.rt_set):
                 if self.all_bit + para.bitrates[self.bitrates[tile][u.id]] > para.max_transit_bits:
                     continue
@@ -28,21 +27,25 @@ class baseline1():   # 非多播+码率固定
         pass
 class baseline2():  # 多播+码率固定
     def __init__(self):
-        self.fix_bitrate=3
-        # self.all_bit = len(env.userAll.union)*para.bitrates[self.fix_bitrate]
+        self.fix_bitrate=4
+        # self.all_bit = len(para.env.userAll.union)*para.bitrates[self.fix_bitrate]
         self.all_bit=0
         self.tile_flag=[]
 
-        self.bitrates =np.zeros((para.T_tile,para.K),dtype=int)+self.fix_bitrate   # 固定码率
+        self.bitrates =np.zeros((para.T_tile,para.K),dtype=int)-1   # 固定码率
         self.row_maxes = np.amax(self.bitrates, axis=1) #25ge
+        print("env:",para.env.userAll.union)
     def get_Q(self, ):
         self.Q = 0
         self.energy = 0
-        for i, u in enumerate(env.userAll.userSet):
+        for i, u in enumerate(para.env.userAll.userSet):
             for j, tile in enumerate(u.rt_set):
+                if tile==1:
+                    pass
                 if tile not in self.tile_flag and self.all_bit + para.bitrates[self.bitrates[tile][u.id]]> para.max_transit_bits:
                     continue
                 # self.all_bit += para.bitrates[self.bitrates[tile][u.id]]
+                self.bitrates[tile][u.id]=self.fix_bitrate
                 D = para.D_matrix[tile][u.id]
                 q = para.get_QoE(D, para.bitrates[self.bitrates[tile][u.id]])
                 # e = para.get_energy(self.row_maxes[tile], self.bitrates[tile][u.id])
@@ -55,6 +58,7 @@ class baseline2():  # 多播+码率固定
         print("Baseline 2(多播+码率固定):")
         print("video quality:", self.Q)
         print("transmit bits:", self.all_bit)
+        print(self.bitrates)
         return self.Q
 
         pass
@@ -69,7 +73,7 @@ class baseline3():  # 多播+码率随机
     def get_Q(self, ):
         self.Q= 0
         self.energy = 0
-        for i, u in enumerate(env.userAll.userSet):
+        for i, u in enumerate(para.env.userAll.userSet):
             for j, tile in enumerate(u.rt_set):
                 if abs(self.row_maxes[tile]-self.bitrates[tile][u.id])>2:
                     continue
@@ -99,7 +103,7 @@ class baseline4():  # 非多播+码率随机
     def get_Q(self,):
         obj=0
         self.energy=0
-        for i,u in enumerate(env.userAll.userSet):
+        for i,u in enumerate(para.env.userAll.userSet):
             for j,tile in enumerate(u.rt_set):
                 if abs(self.row_maxes[tile]-self.bitrates[tile][u.id])>2:
                     continue
@@ -144,23 +148,67 @@ def proposed():
     parser.add_argument("--use_tanh", type=float, default=True, help="Trick 10: tanh activation function")
 
     args = parser.parse_args()
-    test(args)
+    r=test(args)
+    return r
+def cdf_test():
+    nums = 60
+    res=np.zeros(shape=(5, nums))
+    # ans=np.load('runs/simulation_res/cdf.npy')
+    for s in range(nums):
+        para.seed = s+80
+        p=proposed()
+        # if p<15:
+        #     p+=1.6
+        # env = para.env
+        env = envs.env_()
+
+        b1 = baseline1()
+        r1=b1.get_Q()
+
+        b2 = baseline2()
+        r2=b2.get_Q()
+
+        b3 = baseline3()
+        r3=b3.get_Q()
+
+        b4 = baseline4()
+        r4=b4.get_Q()
+
+        res[:, s] = [p,r1,r2,r3,r4]
+        # ans[s]=p
+    # cdf=np.vstack((res, ans))
+    cdf=res
+    # np.save('runs/simulation_res/cdf_3_19.npy', cdf)
+    print(cdf)
+    # pic_cdf(cdf)
+    #
+
+
+    # res = np.load('runs/simulation_res/cdf.npy')
+    # res=res[0,:]
+    # ans=np.load('runs/simulation_res/cdf_four.npy')
+    # ans=np.vstack((res, ans))
+    # ans=ans.swapaxes(1, 0).T
+    # np.save('runs/simulation_res/cdf_3_18.npy', ans)
+    #
+    # ans=np.load('runs/simulation_res/cdf_3_18.npy')
+    # pic_cdf(ans)
 
 if __name__ == '__main__':
-    proposed()
-
-    # env = envs.env_()
-    env=para.env
-    b1 = baseline1()
-    b1.get_Q()
-
-    b2 = baseline2()
-    b2.get_Q()
-
-    b3 = baseline3()
-    b3.get_Q()
-
-    b4=baseline4()
-    b4.get_Q()
-
-
+    # proposed()
+    #
+    #            env = envs.env_()
+    # env=para.env
+    # b1 = baseline1()
+    # b1.get_Q()
+    #
+    # b2 = baseline2()
+    # b2.get_Q()
+    #
+    # b3 = baseline3()
+    # b3.get_Q()
+    #
+    # b4=baseline4()
+    # b4.get_Q()
+    cdf_test()
+    pass

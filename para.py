@@ -2,7 +2,7 @@
 # author: YanJP
 
 import numpy as np
-seed=1
+seed=19  #训练用的10、2200
 np.random.seed(seed)
 
 KHz=1e3
@@ -11,7 +11,7 @@ B=118*KHz  #132最好
 Pmax=25  #W ---> 44dBm  传输速率：[19.7110071  20.1255056  19.15279786 19.29318813]
 bps_max=23
 N0=3.981e-20  #-174dBm
-max_transit_bits=236e6  # 250Mbit 不能超过它 否则就认定为feasible
+max_transit_bits=100e6  # 160Mbit 不能超过它 否则就认定为feasible
 # -----------------------------------------------------
 
 K=4  #用户数
@@ -24,18 +24,18 @@ len_Si=4
 env=None
 
 bitrate_levels=5
-bitrates=np.array([30e6,90e6,180e6,250e6,400e6])/T_tile  #[0.3e6,0.7e6,1.6e6, 3.7e6, 8.6e6, 20e6]   [1e6,2.5e6,5e6,8e6,16e6]
+bitrates=np.array([30e6,90e6,160e6,240e6,380e6])/T_tile  #[0.3e6,0.7e6,1.6e6, 3.7e6, 8.6e6, 20e6]   [1e6,2.5e6,5e6,8e6,16e6]
 
 e=0.5  # 转一个码率等级所消耗的能量
 
 ###-----------------------------Agent设置----------------------
 action_dim=bitrate_levels
-state_dim=T_tile +1 # 加上distance
+state_dim=T_tile +1 +1 # 加上distance ，再加上一个max_transit_bits
 
 ### -----------------------------转码设置------------------------
 capability=0.1e9  # 0.5G cycle/s
 data_one_cycle=0.5 #0.05K bit/cycle
-Bit_max=236e6 # UE最多处理40Mbit的数据
+Bit_max=200e6 # UE最多处理40Mbit的数据
 
 
 
@@ -147,15 +147,15 @@ W_solution=np.ones((N,len_Si))
 def watconvert(power_dbm):
     power_watt = np.power(10, (power_dbm - 30) / 10)
     return power_watt
-afa=5
-beta=10
+afa=1.5
+beta=8
 gamma=1.5
 def get_QoE(D,bitrate):
     Qoe=afa/D*np.log(beta*bitrate/max(bitrates)+gamma)
     return Qoe
-lambda1=0.6  # 训练用的0.6
+lambda1=0.4  # 训练用的0.6
 def get_energy(max_bitratel,bitrate_l):
-    ek=1.5
+    ek=0.9
     return ek*(max_bitratel-bitrate_l)
 
 if __name__ == '__main__':

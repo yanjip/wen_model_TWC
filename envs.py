@@ -103,8 +103,9 @@ class env_():
         self.t_index=self.indexs[self.cur_user][self.t]
         self.D = para.D_matrix[self.t_index, self.cur_user]
         # obs = self.user_transcodebit
+        self.sum_bits=0
         obs=self.get_obs()
-        obs=np.concatenate((obs,np.array([self.D])),axis=0)
+        obs=np.concatenate((obs,np.array([self.D,(para.max_transit_bits-self.sum_bits)/1e8])),axis=0)
         return obs
         # state：[time_step, carrier_left, tile_number]  加不加上tilenumber呢，这很有影响
         pass
@@ -124,19 +125,25 @@ class env_():
         #     action = 0
             # reward=0
         if  self.tile_bit_choose[self.t_index]==-1:
+            while self.sum_bits+para.bitrates[action]>para.max_transit_bits:
+                action-=1
+                if action<0:
+                    action=0
+                    break
+            self.sum_bits +=para.bitrates[action]
             self.tile_bit_choose[self.t_index]=action  # 你现在就是最大的
         elif self.tile_bit_choose[self.t_index]!=-1:
             if action > self.tile_bit_choose[self.t_index]:
                 action = self.tile_bit_choose[self.t_index]
             elif (self.tile_bit_choose[self.t_index]-action)>2:  # 这样写的话，原本选的码率为1，强行改成了4-2=2
-                action=self.tile_bit_choose[self.t_index]-2  #
-                # action=0
-        QoE = para.get_QoE(D, para.bitrates[action])
-        energy_consume=para.get_energy(self.tile_bit_choose[self.t_index],action)
-        self.res_energy_consume+=energy_consume
-        if energy_consume>0:
-            pass
-        reward=QoE-para.lambda1*energy_consume
+                # action=self.tile_bit_choose[self.t_index]-2  #
+                action=-1
+        if action!=-1:
+            QoE = para.get_QoE(D, para.bitrates[action])
+            energy_consume=para.get_energy(self.tile_bit_choose[self.t_index],action)
+            self.res_energy_consume+=energy_consume
+            reward=QoE-para.lambda1*energy_consume
+        else: reward=0
         # for u in self.userAll.K_set[self.group_idx]:
         #     if u.id==self.cur_user:
         #         D=para.D_matrix[self.t,self.cur_user]
@@ -158,8 +165,6 @@ class env_():
         if self.steps%para.N_fov==0:  # 现在是对每个用户依次选择他FoV里面tile的码率
             self.cur_user+=1
             self.t=0
-
-            pass
         if self.steps==para.N_fov*para.K:
             self.done=1.0
         #     obs=self.user_transcodebit/1e6
@@ -171,7 +176,7 @@ class env_():
             # obs = np.concatenate((self.now_h, np.array([self.Nc_left / para.N_c,sum(self.salency[self.index])])), axis=0)
             # obs=np.array([0.0]*para.state_dim)
         obs = self.get_obs()
-        obs=np.concatenate((obs,np.array([self.D])),axis=0)
+        obs=np.concatenate((obs,np.array([self.D,(para.max_transit_bits-self.sum_bits)/1e8])),axis=0)
             # obs=np.concatenate((obs,np.sum(self.salency[self.index])),axis=0)
         return obs, reward, self.done, None
     def Si_rate(self,):

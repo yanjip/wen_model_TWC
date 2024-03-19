@@ -66,11 +66,11 @@ def plot_rewards(rewards,time,  path=None,):
     plt.show()
 
 def process_res(res):
-    proposed=res[:,0]
-    b1=res[:,1]
-    b2=res[:,2]
-    b3=res[:,3]
-    b4=res[:,4]
+    proposed=res[0,:]
+    b1=res[1,:]
+    b2=res[2,:]
+    b3=res[3,:]
+    b4=res[4,:]
     return proposed,b1,b2,b3,b4
     pass
 def plot_user(x,res):
@@ -359,6 +359,54 @@ def draw_baseline_propose(data):
     plt.ylabel('Rewards')
     # 显示图形
     plt.show()
+def calculate_cdf(data):
+    sorted_data = np.sort(data)
+    y = np.arange(1, len(sorted_data) + 1) / len(sorted_data)
+    return sorted_data, y
+def pic_cdf(data):
+    plt.rcParams['font.family'] = 'serif'
+    # plt.rcParams['font.serif'] = 'Times New Roman'
+    # plt.rcParams['font.weight'] = 'bold'
+    fig, ax = plt.subplots()
+    # plt.xticks(fontsize=15)
+    # plt.yticks(fontsize=15)
+    for i in range(data.shape[0]):
+        sorted_data, cdf = calculate_cdf(data[i])
+        if i==0:
+            ax.plot(sorted_data, cdf, label="Proposed Scheme",marker='o',markersize=3,linestyle='--',linewidth=2)
+        else:
+            ax.plot(sorted_data, cdf, label=f"Baseline {i }",linestyle='-.',linewidth=2)
+
+    ax.set_xlabel('Video Quality', fontsize=12, labelpad=1)
+    ax.set_ylabel('CDF', fontsize=12,  labelpad=-1)
+    plt.grid(linestyle="--", color="gray", linewidth="0.5", axis="both")
+    ax.legend(loc='best', fontsize=12)
+    plt.grid(True)
+    a = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    # plt.savefig("runs/baseline/cdf-" + a, dpi=800,bbox_inches='tight', pad_inches=0.1)
+    plt.show()
+
+def plot_bits(x,res):
+    plt.rcParams['font.family'] = 'serif'
+    plt.rcParams['font.serif'] = 'Times New Roman'
+    proposed, b1, b2, b3, b4=process_res(res)
+    plt.plot(x, proposed, marker='>', markersize=8, label='Proposed')  # 使用三角形节点
+    plt.plot(x, b1, marker='o', markersize=8, label='Baseline 1')  # 使用三角形节点
+    plt.plot(x, b2, marker='s', markersize=8, label='Baseline 2',markerfacecolor='none')  # 使用三角形节点
+    plt.plot(x, b3, marker='d', markersize=8, label='Baseline 3',markerfacecolor='none')  # 使用三角形节点
+    plt.plot(x, b4, marker='*', markersize=8, label='Baseline 4',markerfacecolor='none')  # 使用三角形节点
+    plt.rc('font', size=13)
+    plt.grid(linestyle="--",color="gray",linewidth="0.5",axis="both")
+    plt.legend(loc='lower right', ncol=2)
+    plt.ylim(4)
+
+    plt.xlabel('Power (dBm)',fontsize=15)
+    plt.ylabel('Video Quality',fontsize=15)
+    # plt.title('Total QoE at Time Slot')
+    a = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    # plt.savefig("runs/baseline/Nc" + a, dpi=600,bbox_inches='tight', pad_inches=0.01)
+    # 显示图形
+    plt.show()
 
 if __name__ == '__main__':
     # rainbow()
@@ -376,4 +424,7 @@ if __name__ == '__main__':
     # res=np.load('runs/simulation_res/bandwidth12_21.npy')
     # plot_BW(Bws,res)
 
-    pic_reward()
+    # pic_reward()
+
+    ans=np.load('runs/simulation_res/cdf_3_19.npy')
+    pic_cdf(ans)

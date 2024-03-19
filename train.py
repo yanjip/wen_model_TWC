@@ -55,6 +55,7 @@ def evaluate_policy(args, env, agent, state_norm):
             s = s_
         evaluate_reward += sum(env.res_p)
     print("reward:",episode_reward/para.K)
+    print("sum_bits:",env.sum_bits)
     sum_bits_si = env.Si_rate()
     # return evaluate_reward / times
     return env.user_transcodebit,env.res_birate,env.res_energy_consume,sum_bits_si,episode_reward/para.K
@@ -213,7 +214,7 @@ def test_ppo():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("Hyperparameter Setting for PPO-discrete")
-    parser.add_argument("--max_train_steps", type=int, default=int(1.5e3), help=" Maximum number of training steps")
+    parser.add_argument("--max_train_steps", type=int, default=int(2.0e3), help=" Maximum number of training steps")
     parser.add_argument("--max_test_steps", type=int, default=int(1), help=" Maximum number of training steps")
     parser.add_argument("--evaluate_freq", type=float, default=40, help="Evaluate the policy every 'evaluate_freq' steps")
     parser.add_argument("--save_freq", type=int, default=20, help="Save frequency")
@@ -222,7 +223,7 @@ if __name__ == '__main__':
     parser.add_argument("--hidden_width", type=int, default=64, help="The number of neurons in hidden layers of the neural network")
     parser.add_argument("--lr_a", type=float, default=3e-4, help="Learning rate of actor")
     parser.add_argument("--lr_c", type=float, default=3e-4, help="Learning rate of critic")
-    parser.add_argument("--gamma", type=float, default=0.95, help="Discount factor")
+    parser.add_argument("--gamma", type=float, default=0.96, help="Discount factor")
     parser.add_argument("--lamda", type=float, default=0.95, help="GAE parameter")
     parser.add_argument("--epsilon", type=float, default=0.2, help="PPO clip parameter")
     parser.add_argument("--K_epochs", type=int, default=20, help="PPO parameter") #default=10
@@ -239,8 +240,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     curr_time = datetime.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
-    # train=True
-    train=False
+    train=True
+    # train=False
     train_log_dir='runs/rewards/'+curr_time
     if train:
         res_dic=main(args, curr_time, seed=seed)
