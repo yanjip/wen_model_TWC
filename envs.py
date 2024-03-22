@@ -128,9 +128,10 @@ class env_():
             while self.sum_bits+para.bitrates[action]>para.max_transit_bits:
                 action-=1
                 if action<0:
-                    action=0
+                    action=-1
                     break
-            self.sum_bits +=para.bitrates[action]
+            if action!=-1:
+                self.sum_bits +=para.bitrates[action]
             self.tile_bit_choose[self.t_index]=action  # 你现在就是最大的
         elif self.tile_bit_choose[self.t_index]!=-1:
             if action > self.tile_bit_choose[self.t_index]:
@@ -138,7 +139,7 @@ class env_():
             elif (self.tile_bit_choose[self.t_index]-action)>2:  # 这样写的话，原本选的码率为1，强行改成了4-2=2
                 # action=self.tile_bit_choose[self.t_index]-2  #
                 action=-1
-        if action!=-1:
+        if action>-1:
             QoE = para.get_QoE(D, para.bitrates[action])
             energy_consume=para.get_energy(self.tile_bit_choose[self.t_index],action)
             self.res_energy_consume+=energy_consume

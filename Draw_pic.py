@@ -365,11 +365,11 @@ def calculate_cdf(data):
     return sorted_data, y
 def pic_cdf(data):
     plt.rcParams['font.family'] = 'serif'
-    # plt.rcParams['font.serif'] = 'Times New Roman'
+    plt.rcParams['font.serif'] = 'Times New Roman'
     # plt.rcParams['font.weight'] = 'bold'
     fig, ax = plt.subplots()
-    # plt.xticks(fontsize=15)
-    # plt.yticks(fontsize=15)
+    plt.xticks(fontsize=13)
+    plt.yticks(fontsize=13)
     for i in range(data.shape[0]):
         sorted_data, cdf = calculate_cdf(data[i])
         if i==0:
@@ -377,13 +377,13 @@ def pic_cdf(data):
         else:
             ax.plot(sorted_data, cdf, label=f"Baseline {i }",linestyle='-.',linewidth=2)
 
-    ax.set_xlabel('Video Quality', fontsize=12, labelpad=1)
-    ax.set_ylabel('CDF', fontsize=12,  labelpad=-1)
+    ax.set_xlabel(r'$Q(\mathbf{u}) -\lambda E(\mathbf{u})$', fontsize=13, labelpad=1)
+    ax.set_ylabel('CDF', fontsize=13,  labelpad=-1)
     plt.grid(linestyle="--", color="gray", linewidth="0.5", axis="both")
-    ax.legend(loc='best', fontsize=12)
+    ax.legend(loc='best', fontsize=13)
     plt.grid(True)
     a = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    # plt.savefig("runs/baseline/cdf-" + a, dpi=800,bbox_inches='tight', pad_inches=0.1)
+    plt.savefig("runs/baseline/cdf-" + a, dpi=800,bbox_inches='tight', pad_inches=0.1)
     plt.show()
 
 def plot_bits(x,res):
@@ -397,16 +397,52 @@ def plot_bits(x,res):
     plt.plot(x, b4, marker='*', markersize=8, label='Baseline 4',markerfacecolor='none')  # 使用三角形节点
     plt.rc('font', size=13)
     plt.grid(linestyle="--",color="gray",linewidth="0.5",axis="both")
-    plt.legend(loc='lower right', ncol=2)
-    plt.ylim(4)
-
-    plt.xlabel('Power (dBm)',fontsize=15)
-    plt.ylabel('Video Quality',fontsize=15)
+    plt.legend(loc='lower right', ncol=3)
+    plt.ylim(0)
+    plt.xticks(fontsize=13)
+    plt.yticks(fontsize=13)
+    plt.xlabel('Power (dBm)',fontsize=13)
+    plt.ylabel(r'$Q(\mathbf{u}) -\lambda E(\mathbf{u})$',fontsize=13)
     # plt.title('Total QoE at Time Slot')
     a = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    # plt.savefig("runs/baseline/Nc" + a, dpi=600,bbox_inches='tight', pad_inches=0.01)
+    # plt.savefig("runs/baseline/Power-" + a, dpi=600,bbox_inches='tight', pad_inches=0.01)
     # 显示图形
     plt.show()
+def plot_mix_bar(res):
+    plt.rcParams['font.family'] = 'serif'
+    plt.rcParams['font.serif'] = 'Times New Roman'
+    # plt.rcParams['font.weight'] = 'bold'
+    plt.rc('font', size=13)
+    plt.grid(linestyle="--", color="gray", linewidth="0.5", axis="both")
+    Q,E,mix = res[0],res[1],res[2]
+    # Q=np.concatenate((Q[1:], Q[:1]))
+    # E=np.concatenate((E[1:], E[:1]))
+    # mix=np.concatenate((mix[1:], mix[:1]))
+    categories = ['Proposed Scheme','Baseline 1', 'Baseline 2', 'Baseline 3','Baseline 4']  # x轴的标签
+
+    x = np.arange(len(categories))
+    # 使用plt.bar()替代plt.plot()
+    width = 0.2  # 设置柱状图的宽度
+
+    plt.bar(x, mix, width=width, label='''$Q(\mathbf{u}) -\lambda E(\mathbf{u})$''',color='#ff7f0e' )
+    plt.bar([i + width for i in x], Q, width=width, label='$Q(\mathbf{u})$',color='#1f77b4')
+    plt.bar([i + 2 * width for i in x], E, width=width, label=r'$E(\mathbf{u})$',color='#2ca02c')
+    # plt.bar([i + 3 * width for i in x], b3, width=width, label='Baseline 3', alpha=0.7)
+    plt.ylim(0,20)
+
+    plt.xticks([i + 1.5 * width for i in x], categories)  # 调整x轴刻度位置
+    plt.xticks(fontsize=13)
+    plt.xticks(rotation=15)
+
+    plt.yticks(fontsize=13)
+    # plt.xlabel(r'Maximum power (W)', fontsize=17, fontweight='bold', labelpad=0)
+    plt.ylabel('Value', fontsize=17, labelpad=0)
+    plt.legend(loc='best',ncol=3)
+
+    a = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+    plt.savefig("runs/baseline/Mix" + a, dpi=900, bbox_inches='tight', pad_inches=0.01)
+    plt.show()
+
 
 if __name__ == '__main__':
     # rainbow()
@@ -426,5 +462,16 @@ if __name__ == '__main__':
 
     # pic_reward()
 
-    ans=np.load('runs/simulation_res/cdf_3_19.npy')
-    pic_cdf(ans)
+
+    # ans=np.load('runs/simulation_res/cdf_3_19.npy')
+    # pic_cdf(ans)
+
+    # ans=np.load('runs/simulation_res/power_3_19.npy')
+    # p=[34,35,36,37,38,39]
+    # plot_bits(p,ans)
+
+
+    ans=np.load('runs/simulation_res/mix.npy')
+    print(ans)
+    # plot_mix_bar(ans)
+

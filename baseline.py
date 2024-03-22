@@ -6,7 +6,7 @@ import para
 from train import *
 class baseline1():   # 非多播+码率固定
     def __init__(self):
-        self.bitrates =np.ones((para.T_tile,para.K),dtype=int)+2   # 固定码率
+        self.bitrates =np.zeros((para.T_tile,para.K),dtype=int)+4   # 固定码率
         self.all_bit = 0
     def get_Q(self, ):
         Q = 0
@@ -40,25 +40,24 @@ class baseline2():  # 多播+码率固定
         self.energy = 0
         for i, u in enumerate(para.env.userAll.userSet):
             for j, tile in enumerate(u.rt_set):
-                if tile==1:
-                    pass
-                if tile not in self.tile_flag and self.all_bit + para.bitrates[self.bitrates[tile][u.id]]> para.max_transit_bits:
+                if tile not in self.tile_flag and self.all_bit + para.bitrates[self.fix_bitrate]> para.max_transit_bits:
                     continue
                 # self.all_bit += para.bitrates[self.bitrates[tile][u.id]]
                 self.bitrates[tile][u.id]=self.fix_bitrate
                 D = para.D_matrix[tile][u.id]
                 q = para.get_QoE(D, para.bitrates[self.bitrates[tile][u.id]])
-                # e = para.get_energy(self.row_maxes[tile], self.bitrates[tile][u.id])
-                # self.energy += e
+                e = para.get_energy(self.row_maxes[tile], self.bitrates[tile][u.id])
+                self.energy += e
                 self.Q += (q - para.lambda1 * 0)
                 if tile not in self.tile_flag :
                     self.tile_flag.append(tile)
-                    self.all_bit+=para.bitrates[self.bitrates[tile][u.id]]
+                    self.all_bit+=para.bitrates[self.fix_bitrate]
         self.Q /= para.K
+        # para.energy[2]=self.energy
         print("Baseline 2(多播+码率固定):")
         print("video quality:", self.Q)
         print("transmit bits:", self.all_bit)
-        print(self.bitrates)
+        # print(self.bitrates)
         return self.Q
 
         pass
@@ -89,6 +88,7 @@ class baseline3():  # 多播+码率随机
                     self.tile_flag.append(tile)
                     self.all_bit+=para.bitrates[self.bitrates[tile][u.id]]
         self.Q/=para.K
+        para.energy[3]=self.energy
         print("Baseline 3 (多播+码率随机):")
         print("video quality:", self.Q)
         print("transmit bits:", self.all_bit)
@@ -114,8 +114,9 @@ class baseline4():  # 非多播+码率随机
                 q = para.get_QoE(D, para.bitrates[self.bitrates[tile][u.id]])
                 e = para.get_energy(self.row_maxes[tile], self.bitrates[tile][u.id])
                 self.energy += e
-                obj += (q - para.lambda1 * e)
+                obj += (q - para.lambda1 * 0)
         obj/=para.K
+        para.energy[4]=self.energy
         print("Baseline 4 (非多播+码率随机):")
         print("video quality:", obj)
         print("transmit bits:", self.all_bit)
@@ -156,6 +157,7 @@ def cdf_test():
     # ans=np.load('runs/simulation_res/cdf.npy')
     for s in range(nums):
         para.seed = s+80
+        np.random.seed(para.seed)
         p=proposed()
         # if p<15:
         #     p+=1.6
@@ -178,9 +180,9 @@ def cdf_test():
         # ans[s]=p
     # cdf=np.vstack((res, ans))
     cdf=res
-    # np.save('runs/simulation_res/cdf_3_19.npy', cdf)
+    np.save('runs/simulation_res/cdf_3_19.npy', cdf)
     print(cdf)
-    # pic_cdf(cdf)
+    pic_cdf(cdf)
     #
 
 
@@ -195,20 +197,20 @@ def cdf_test():
     # pic_cdf(ans)
 
 if __name__ == '__main__':
-    # proposed()
-    #
-    #            env = envs.env_()
-    # env=para.env
-    # b1 = baseline1()
-    # b1.get_Q()
-    #
-    # b2 = baseline2()
-    # b2.get_Q()
-    #
-    # b3 = baseline3()
-    # b3.get_Q()
-    #
-    # b4=baseline4()
-    # b4.get_Q()
-    cdf_test()
+    proposed()
+               # env = envs.env_()
+    env=para.env
+    b1 = baseline1()
+    b1.get_Q()
+
+    b2 = baseline2()
+    b2.get_Q()
+
+    b3 = baseline3()
+    b3.get_Q()
+
+    b4=baseline4()
+    b4.get_Q()
+
+    # cdf_test()
     pass

@@ -2,7 +2,7 @@
 # author: YanJP
 # time: 2023/10/30 14:57
 # author: YanJP
-
+import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
 import argparse
@@ -199,7 +199,9 @@ def test(args,model_dic='rnn'):
         user_transcodebit, bitrates, energy_consume, sum_bits_si,episode_reward = evaluate_policy(args, env, agent,
                                                                                    state_norm)
         print("sum_bits",sum(sum_bits_si))
+        para.energy[0]=energy_consume
         print(" \t energy_consume:{}\tbirate_seleciton:{}".format( energy_consume,bitrates))
+        # np.save('runs/simulation_res/bitrates.npy',bitrates)
     return episode_reward
         # ep_reward=sum(episode_rewards)
         # print("ep_reward:",ep_reward)

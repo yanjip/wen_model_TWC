@@ -33,10 +33,11 @@ def pic_grid():
 
 
     # 生成随机的4行25列的numpy矩阵，数值范围在0到5之间
-    data = np.random.randint(-1,5, size=(4, 25))
+    # data = np.random.randint(-1,5, size=(4, 25))
+    data=np.load('runs/simulation_res/bitrates.npy').T
 
     # 定义颜色映射
-    colors = [ 'forestgreen', 'limegreen','lime','gold', 'orange','gray']
+    colors = [ 'forestgreen', 'limegreen','white','gold', 'orange','gray']
 
     # 创建图形和轴对象
     fig, ax = plt.subplots(figsize=(15, 5))
@@ -111,6 +112,6 @@ if __name__ == '__main__':
     # res=np.load('runs/rewards/2024_03_13-10_30_46_reward.npy')
     # print(res[0:5])
 
-    # pic_grid()
-
-    cdf()
+    pic_grid()
+    #
+    # cdf()

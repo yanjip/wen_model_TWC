@@ -2,7 +2,7 @@
 # author: YanJP
 
 import numpy as np
-seed=19  #训练用的10、2200
+seed=3407  #训练用的10、2200,200
 np.random.seed(seed)
 
 KHz=1e3
@@ -157,7 +157,7 @@ lambda1=0.4  # 训练用的0.6
 def get_energy(max_bitratel,bitrate_l):
     ek=0.9
     return ek*(max_bitratel-bitrate_l)
-
+energy=[0]*5
 if __name__ == '__main__':
     # x=get_hot_zipf()
     # print(x)
